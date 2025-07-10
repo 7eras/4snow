@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>4 Abrar</title>
   <style>
-    /* نفس الـ CSS السابق مع تعديل بسيط */
     body {
       margin: 0;
       padding: 0;
@@ -20,6 +19,7 @@
       box-sizing: border-box;
       -webkit-text-size-adjust: 100%;
     }
+
     input[type="text"] {
       font-size: 5vw;
       padding: 4vw 5vw;
@@ -37,8 +37,9 @@
       -webkit-user-select: text;
       margin-bottom: 1rem;
     }
+
     button {
-      font-size: 4vw;
+      font-size: 6vw;
       padding: 1rem 2rem;
       border-radius: 12px;
       border: none;
@@ -51,9 +52,11 @@
       max-width: 500px;
       width: 90vw;
     }
+
     button:hover {
       background-color: #357abd;
     }
+
     .modal {
       position: fixed;
       top: 0;
@@ -67,6 +70,7 @@
       z-index: 9999;
       padding: 20px;
     }
+
     .modal-content {
       background: white;
       padding: 6vw 7vw;
@@ -74,7 +78,7 @@
       font-size: 6vw;
       color: #2c3e50;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      max-width: 90vw;
+      max-width: 95vw;
       max-height: 80vh;
       text-align: center;
       animation: fadeIn 0.4s ease;
@@ -84,10 +88,12 @@
       user-select: text;
       cursor: text;
     }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
     @media (min-width: 768px) {
       input[type="text"], button {
         font-size: 1.2rem;
@@ -102,8 +108,6 @@
 </head>
 <body>
 
-  <h1>Caesar Cipher Decryption</h1>
-
   <input
     type="text"
     id="cipherInput"
@@ -114,11 +118,11 @@
     spellcheck="false"
   />
 
-  <!-- input مخفي يفتح الكاميرا -->
+  <!-- زر الكاميرا -->
+  <button id="openCameraBtn">📷</button>
+  
+  <!-- input مخفي لفتح الكاميرا -->
   <input type="file" id="imageInput" accept="image/*" capture="environment" style="display:none" />
-
-  <!-- زر تشغيل الكاميرا -->
-  <button id="openCameraBtn">التصوير وفك التشفير</button>
 
   <!-- النافذة المنبثقة -->
   <div class="modal" id="popupModal">
@@ -181,11 +185,11 @@
     input.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        input.blur();
+        input.blur(); // يخفي الكيبورد في الآيفون
         const raw = input.value.trim();
         if (!raw) return;
         const decryptedText = tryAllShifts(raw);
-        showPopup(decryptedText || "⚠️ No meaningful result found.");
+        showPopup(decryptedText || "⚠️ لا توجد نتيجة ذات معنى لفك التشفير.");
       }
     });
 
@@ -197,21 +201,25 @@
       const file = imageInput.files[0];
       if (!file) return;
 
-      showPopup("Processing image... please wait.");
+      showPopup("جارٍ معالجة الصورة...");
 
       Tesseract.recognize(
         file,
         'eng',
         { logger: m => console.log(m) }
       ).then(({ data: { text } }) => {
+        if (!text.trim()) {
+          showPopup("⚠️ الصورة غير واضحة أو لا تحتوي على نص يمكن قراءته.");
+          return;
+        }
         const decrypted = tryAllShifts(text.trim());
         if (decrypted) {
-          showPopup("Decrypted text: " + decrypted);
+          showPopup("النص بعد فك التشفير:\n" + decrypted);
         } else {
-          showPopup("⚠️ No meaningful result found.");
+          showPopup("⚠️ لا توجد نتيجة ذات معنى لفك التشفير.");
         }
       }).catch(err => {
-        showPopup("Error processing image.");
+        showPopup("حدث خطأ أثناء معالجة الصورة.");
         console.error(err);
       });
     });

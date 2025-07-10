@@ -2,24 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>4 Abrar</title>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
       background: linear-gradient(to right, #8e9eab, #eef2f3);
       min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      box-sizing: border-box;
       -webkit-text-size-adjust: 100%;
-      touch-action: manipulation;
     }
 
     input[type="text"] {
@@ -33,17 +31,6 @@
       outline: none;
       text-align: center;
       margin-bottom: 1rem;
-      background-color: white;
-      color: #333;
-      caret-color: #4a90e2;
-    }
-
-    input {
-      -webkit-user-select: text;
-      autocomplete: off;
-      autocorrect: off;
-      autocapitalize: none;
-      spellcheck: false;
     }
 
     button {
@@ -61,7 +48,7 @@
       width: 90vw;
     }
 
-    button:active {
+    button:hover {
       background-color: #357abd;
     }
 
@@ -77,26 +64,45 @@
       align-items: center;
       z-index: 9999;
       padding: 20px;
-      -webkit-overflow-scrolling: touch;
     }
 
     .modal-content {
       background: white;
       padding: 6vw 7vw;
-      border-radius: 16px;
-      font-size: 5.5vw;
+      border-radius: 12px;
+      font-size: 6vw;
       color: #2c3e50;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
       max-width: 95vw;
       max-height: 80vh;
       text-align: center;
-      animation: fadeIn 0.3s ease;
+      animation: fadeIn 0.4s ease;
+      word-break: break-word;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       user-select: text;
+      cursor: text;
+    }
+
+    footer.signature {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.4);
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-family: 'Brush Script MT', 'Segoe Script', cursive;
+      font-size: 5vw;
+      font-style: italic;
+      color: #2c3e50;
+      z-index: 999;
+      user-select: none;
+      pointer-events: none;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -107,7 +113,10 @@
         width: auto;
       }
       .modal-content {
-        font-size: 1.3rem;
+        font-size: 1.5rem;
+      }
+      footer.signature {
+        font-size: 1.5rem;
       }
     }
   </style>
@@ -124,16 +133,15 @@
     spellcheck="false"
   />
 
-  <!-- Camera button -->
   <button id="openCameraBtn">📷</button>
-  
-  <!-- Hidden file input to trigger camera -->
+
   <input type="file" id="imageInput" accept="image/*" capture="environment" style="display:none" />
 
-  <!-- Modal popup -->
   <div class="modal" id="popupModal">
     <div class="modal-content" id="popupContent"></div>
   </div>
+
+  <footer class="signature">7eras</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script>
@@ -191,11 +199,16 @@
     input.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
         e.preventDefault();
-        input.blur(); // iOS hide keyboard
+        input.blur();
         const raw = input.value.trim();
         if (!raw) return;
         const decryptedText = tryAllShifts(raw);
-        showPopup(decryptedText || "⚠️ No meaningful result found.");
+        if (decryptedText) {
+          showPopup(decryptedText);
+        } else {
+          alert("⚠️ No valid result found. Reloading...");
+          location.reload();
+        }
       }
     });
 
@@ -210,23 +223,28 @@
       showPopup("Processing image...");
 
       Tesseract.recognize(file, 'eng', {
-        logger: m => console.log(m)
+        logger: m => console.log(m),
+        tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
+        preserve_interword_spaces: 1
       }).then(({ data: { text } }) => {
-        if (!text.trim()) {
-          alert("Image is unclear or has no readable text. Reloading...");
+        const cleaned = text.replace(/[^a-zA-Z\s]/g, '').replace(/\s+/g, ' ').trim();
+
+        if (!cleaned || cleaned.length < 5) {
+          alert("❌ The text is unclear or too short. Reloading...");
           location.reload();
           return;
         }
-        const decrypted = tryAllShifts(text.trim());
+
+        const decrypted = tryAllShifts(cleaned);
         if (decrypted) {
-          showPopup("Decrypted text:\n" + decrypted);
+          showPopup(decrypted);
         } else {
-          alert("No meaningful result found. Reloading...");
+          alert("⚠️ No valid result found. Reloading...");
           location.reload();
         }
       }).catch(err => {
         console.error(err);
-        alert("Error processing image. Reloading...");
+        alert("❌ Error processing image. Reloading...");
         location.reload();
       });
     });

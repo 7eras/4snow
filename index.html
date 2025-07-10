@@ -14,7 +14,7 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       padding: 20px;
       box-sizing: border-box;
       -webkit-text-size-adjust: 100%;
@@ -48,10 +48,6 @@
       width: 90vw;
     }
 
-    button:hover {
-      background-color: #357abd;
-    }
-
     .modal {
       position: fixed;
       top: 0;
@@ -80,25 +76,6 @@
       word-break: break-word;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      user-select: text;
-      cursor: text;
-    }
-
-    footer.signature {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.4);
-      padding: 8px 16px;
-      border-radius: 12px;
-      font-family: 'Brush Script MT', 'Segoe Script', cursive;
-      font-size: 5vw;
-      font-style: italic;
-      color: #2c3e50;
-      z-index: 999;
-      user-select: none;
-      pointer-events: none;
     }
 
     @keyframes fadeIn {
@@ -115,33 +92,18 @@
       .modal-content {
         font-size: 1.5rem;
       }
-      footer.signature {
-        font-size: 1.5rem;
-      }
     }
   </style>
 </head>
 <body>
 
-  <input
-    type="text"
-    id="cipherInput"
-    placeholder="Enter the encrypted text"
-    autocomplete="off"
-    autocorrect="off"
-    autocapitalize="none"
-    spellcheck="false"
-  />
-
+  <input type="text" id="cipherInput" placeholder="Enter encrypted text" autocomplete="off" />
   <button id="openCameraBtn">📷</button>
-
   <input type="file" id="imageInput" accept="image/*" capture="environment" style="display:none" />
 
   <div class="modal" id="popupModal">
     <div class="modal-content" id="popupContent"></div>
   </div>
-
-  <footer class="signature">7eras</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script>
@@ -152,9 +114,9 @@
     const popupContent = document.getElementById("popupContent");
 
     const commonWords = [
-      "the", "and", "you", "that", "hello", "this", "have", "for", "are", "was", "with",
-      "your", "from", "they", "say", "said", "all", "world", "love", "good", "day", "night",
-      "what", "why", "how", "can", "will", "not", "yes", "no", "please", "thank", "just", "know"
+      "the", "and", "you", "that", "this", "have", "for", "are", "was", "with",
+      "your", "from", "they", "say", "all", "world", "love", "good", "day", "night",
+      "what", "how", "can", "will", "not", "yes", "no", "please", "thank", "just", "know"
     ];
 
     function caesarDecrypt(text, shift) {
@@ -180,9 +142,7 @@
     function tryAllShifts(text) {
       for (let shift = 1; shift < 26; shift++) {
         const decrypted = caesarDecrypt(text, shift);
-        if (looksMeaningful(decrypted)) {
-          return decrypted;
-        }
+        if (looksMeaningful(decrypted)) return decrypted;
       }
       return null;
     }
@@ -202,13 +162,8 @@
         input.blur();
         const raw = input.value.trim();
         if (!raw) return;
-        const decryptedText = tryAllShifts(raw);
-        if (decryptedText) {
-          showPopup(decryptedText);
-        } else {
-          alert("⚠️ No valid result found. Reloading...");
-          location.reload();
-        }
+        const decrypted = tryAllShifts(raw);
+        showPopup(decrypted || "⚠️ No meaningful result found.");
       }
     });
 
@@ -220,33 +175,38 @@
       const file = imageInput.files[0];
       if (!file) return;
 
-      showPopup("Processing image...");
+      showPopup("🔍 Analyzing image...");
 
-      Tesseract.recognize(file, 'eng', {
-        logger: m => console.log(m),
-        tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
-        preserve_interword_spaces: 1
-      }).then(({ data: { text } }) => {
-        const cleaned = text.replace(/[^a-zA-Z\s]/g, '').replace(/\s+/g, ' ').trim();
+      Tesseract.recognize(file, 'eng', { logger: m => console.log(m) })
+        .then(({ data: { text } }) => {
+          const cleaned = text.trim();
 
-        if (!cleaned || cleaned.length < 5) {
-          alert("❌ The text is unclear or too short. Reloading...");
-          location.reload();
-          return;
-        }
+          // فحص الذكاء البسيط
+          if (cleaned.length < 10) {
+            showPopup("⚠️ Text not clear. Please try a better image.");
+            setTimeout(() => location.reload(), 3000);
+            return;
+          }
 
-        const decrypted = tryAllShifts(cleaned);
-        if (decrypted) {
-          showPopup(decrypted);
-        } else {
-          alert("⚠️ No valid result found. Reloading...");
-          location.reload();
-        }
-      }).catch(err => {
-        console.error(err);
-        alert("❌ Error processing image. Reloading...");
-        location.reload();
-      });
+          if (!looksMeaningful(cleaned)) {
+            showPopup("⚠️ The text seems unclear or not useful.");
+            setTimeout(() => location.reload(), 3000);
+            return;
+          }
+
+          const decrypted = tryAllShifts(cleaned);
+          if (decrypted) {
+            showPopup(decrypted);
+          } else {
+            showPopup("⚠️ No meaningful decryption found.");
+            setTimeout(() => location.reload(), 3000);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          showPopup("❌ Error reading the image.");
+          setTimeout(() => location.reload(), 3000);
+        });
     });
   </script>
 

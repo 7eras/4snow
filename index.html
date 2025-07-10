@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Caesar AI Decryptor</title>
+  <title>Caesar Decryptor</title>
   <style>
     body {
       margin: 0;
@@ -63,8 +63,6 @@
 <body>
 
   <input type="text" id="cipherInput" placeholder="Enter encrypted text" />
-  <button id="openCameraBtn">📷 Scan Image</button>
-  <input type="file" id="imageInput" accept="image/*" capture="environment" style="display:none" />
 
   <div class="modal" id="popupModal">
     <div class="modal-content" id="popupContent">Result</div>
@@ -72,8 +70,6 @@
 
   <script>
     const input = document.getElementById("cipherInput");
-    const imageInput = document.getElementById("imageInput");
-    const openCameraBtn = document.getElementById("openCameraBtn");
     const popup = document.getElementById("popupModal");
     const popupContent = document.getElementById("popupContent");
 
@@ -113,43 +109,6 @@
         if (!raw) return;
         const decrypted = tryAllShifts(raw);
         showPopup(decrypted || "⚠️ No meaningful result found.");
-      }
-    });
-
-    openCameraBtn.addEventListener("click", () => imageInput.click());
-
-    imageInput.addEventListener("change", async () => {
-      const file = imageInput.files[0];
-      if (!file) return;
-
-      showPopup("🔍 Scanning image using AI...");
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("language", "eng");
-      formData.append("apikey", K81705608988957);
-
-      try {
-        const res = await fetch("https://api.ocr.space/parse/image", {
-          method: "POST",
-          body: formData
-        });
-
-        const data = await res.json();
-        const text = data?.ParsedResults?.[0]?.ParsedText?.trim() || "";
-
-        if (text.length < 10) {
-          showPopup("⚠️ Text not clear. Try again.");
-          setTimeout(() => location.reload(), 3000);
-          return;
-        }
-
-        const decrypted = tryAllShifts(text);
-        showPopup(decrypted || "⚠️ No meaningful decryption found.");
-      } catch (err) {
-        console.error(err);
-        showPopup("❌ Error processing image.");
-        setTimeout(() => location.reload(), 3000);
       }
     });
   </script>

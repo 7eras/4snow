@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>4 Abrar</title>
   <style>
+    /* نفس الـ CSS السابق مع تعديل بسيط */
     body {
       margin: 0;
       padding: 0;
@@ -17,18 +18,9 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       padding: 20px;
       box-sizing: border-box;
-      -webkit-text-size-adjust: 100%; /* لمنع التكبير التلقائي للنص */
+      -webkit-text-size-adjust: 100%;
     }
-
-    h1 {
-      font-size: 6vw;
-      color: #333;
-      margin-bottom: 6vw;
-      text-align: center;
-      text-shadow: 1px 1px 2px #ccc;
-    }
-
-    input {
+    input[type="text"] {
       font-size: 5vw;
       padding: 4vw 5vw;
       width: 90vw;
@@ -38,19 +30,30 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       outline: none;
       text-align: center;
-      /* تعطيل التصحيح التلقائي */
       autocomplete: off;
       autocorrect: off;
       autocapitalize: none;
       spellcheck: false;
       -webkit-user-select: text;
+      margin-bottom: 1rem;
     }
-
-    input:focus {
-      border-color: #4a90e2;
+    button {
+      font-size: 4vw;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      border: none;
+      background-color: #4a90e2;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      margin-bottom: 2rem;
+      max-width: 500px;
+      width: 90vw;
     }
-
-    /* Modal styles */
+    button:hover {
+      background-color: #357abd;
+    }
     .modal {
       position: fixed;
       top: 0;
@@ -64,7 +67,6 @@
       z-index: 9999;
       padding: 20px;
     }
-
     .modal-content {
       background: white;
       padding: 6vw 7vw;
@@ -72,80 +74,64 @@
       font-size: 6vw;
       color: #2c3e50;
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      max-width: 100%;
+      max-width: 90vw;
       max-height: 80vh;
       text-align: center;
       animation: fadeIn 0.4s ease;
       word-break: break-word;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch; /* لتحسين التمرير في iOS */
-      user-select: text; /* يسمح للمستخدم بنسخ النص */
+      -webkit-overflow-scrolling: touch;
+      user-select: text;
       cursor: text;
     }
-
-    /* زر نسخ داخل النافذة */
-    .copy-btn {
-      margin-top: 1.5rem;
-      padding: 0.8rem 1.5rem;
-      font-size: 4vw;
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      user-select: none;
-      transition: background-color 0.3s ease;
-    }
-
-    .copy-btn:hover {
-      background-color: #357abd;
-    }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     @media (min-width: 768px) {
-      h1 {
-        font-size: 2.5rem;
-      }
-      input {
+      input[type="text"], button {
         font-size: 1.2rem;
         padding: 15px 20px;
+        width: auto;
       }
       .modal-content {
         font-size: 1.5rem;
-      }
-      .copy-btn {
-        font-size: 1rem;
       }
     }
   </style>
 </head>
 <body>
 
+  <h1>Caesar Cipher Decryption</h1>
+
   <input
     type="text"
     id="cipherInput"
-    placeholder="Enter The Text"
+    placeholder="Enter the encrypted text"
     autocomplete="off"
     autocorrect="off"
     autocapitalize="none"
     spellcheck="false"
   />
 
-  <!-- Popup Modal -->
+  <!-- input مخفي يفتح الكاميرا -->
+  <input type="file" id="imageInput" accept="image/*" capture="environment" style="display:none" />
+
+  <!-- زر تشغيل الكاميرا -->
+  <button id="openCameraBtn">التصوير وفك التشفير</button>
+
+  <!-- النافذة المنبثقة -->
   <div class="modal" id="popupModal">
     <div class="modal-content" id="popupContent"></div>
-    <button class="copy-btn" id="copyBtn">Copy Text</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script>
     const input = document.getElementById("cipherInput");
+    const imageInput = document.getElementById("imageInput");
+    const openCameraBtn = document.getElementById("openCameraBtn");
     const popup = document.getElementById("popupModal");
     const popupContent = document.getElementById("popupContent");
-    const copyBtn = document.getElementById("copyBtn");
 
     const commonWords = [
       "the", "and", "you", "that", "hello", "this", "have", "for", "are", "was", "with",
@@ -186,18 +172,16 @@
     function showPopup(message) {
       popupContent.textContent = message;
       popup.style.display = "flex";
-      copyBtn.style.display = message === "⚠️ No meaningful result found." ? "none" : "inline-block";
+      clearTimeout(showPopup.timeoutId);
+      showPopup.timeoutId = setTimeout(() => {
+        popup.style.display = "none";
+      }, 10000);
     }
-
-    function hidePopup() {
-      popup.style.display = "none";
-    }
-
-    // إغلاق النافذة فقط بزر النسخ أو عبر زر خارجي (غير إغلاق بالنقر على الخلفية)
-    // هنا لن نستخدم إغلاق النافذة بالنقر على الخلفية لتفادي مشاكل اللمس
 
     input.addEventListener("keydown", function(e) {
       if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
         const raw = input.value.trim();
         if (!raw) return;
         const decryptedText = tryAllShifts(raw);
@@ -205,20 +189,32 @@
       }
     });
 
-    copyBtn.addEventListener("click", () => {
-      const text = popupContent.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        copyBtn.textContent = "Copied!";
-        setTimeout(() => {
-          copyBtn.textContent = "Copy Text";
-          hidePopup();
-        }, 1500);
-      }).catch(() => {
-        alert("Failed to copy text");
-      });
+    openCameraBtn.addEventListener("click", () => {
+      imageInput.click();
     });
 
-    // اختصار: اضغط على زر Enter للإظهار، ثم زر النسخ لنسخ النص وإغلاق النافذة.
+    imageInput.addEventListener("change", () => {
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      showPopup("Processing image... please wait.");
+
+      Tesseract.recognize(
+        file,
+        'eng',
+        { logger: m => console.log(m) }
+      ).then(({ data: { text } }) => {
+        const decrypted = tryAllShifts(text.trim());
+        if (decrypted) {
+          showPopup("Decrypted text: " + decrypted);
+        } else {
+          showPopup("⚠️ No meaningful result found.");
+        }
+      }).catch(err => {
+        showPopup("Error processing image.");
+        console.error(err);
+      });
+    });
   </script>
 
 </body>
